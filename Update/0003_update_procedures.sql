@@ -1,1501 +1,147 @@
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                                 MVD_RP1_Map : Database.sql                                                 ~~
-~~                                                 MySQL Database Creation Script                                             ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
--- Rename [{MVD_RP1_Map}] to your desired database name
--- This script creates a MySQL database with UTF-8 support and appropriate settings
-
--- Drop database (optional - remove if you want to preserve existing data)
--- DROP DATABASE [{MVD_RP1_Map}];
-
-CREATE DATABASE IF NOT EXISTS MVD_RP1_Map;
-
 USE MVD_RP1_Map;
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~
-~~ MySQL Database Creation Notes:
-~~
-~~ 1. File Management: MySQL handles data files automatically. No need to specify file paths.
-~~ 2. Character Set: utf8mb4 is recommended for full UTF-8 support including emojis.
-~~ 3. Storage Engine: InnoDB is recommended for ACID compliance and foreign key support.
-~~ 4. User Management: Create dedicated users instead of using root for applications.
-~~ 5. Configuration: Many SQL Server database settings are handled in MySQL's my.cnf file.
-~~
-~~ Recommended my.cnf settings for this database:
-~~ [mysqld]
-~~ default-storage-engine=innodb
-~~ innodb_file_per_table=1
-~~ innodb_buffer_pool_size=1G  # Adjust based on available RAM
-~~ max_connections=200
-~~ query_cache_size=32M
-~~ log-bin=mysql-bin
-~~ binlog_format=ROW
-~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                                 MVD_RP1_Map : RMCObject.sql                                                ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-CREATE TABLE RMCType
-(
-   bType                               TINYINT UNSIGNED  NOT NULL,
-   sType                               VARCHAR (31)      NOT NULL,
-
-   CONSTRAINT PK_RMCType PRIMARY KEY
-   (
-      bType                            ASC
-   )
-)
-ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-INSERT INTO RMCType
-       (bType, sType)
-VALUES ( 0, ''              ),
-       ( 1, 'Universe'      ),
-       ( 2, 'Supercluster'  ),
-       ( 3, 'Galaxy Cluster'),
-       ( 4, 'Galaxy'        ),
-       ( 5, 'Black Hole'    ),
-       ( 6, 'Nebula'        ),
-       ( 7, 'Star Cluster'  ),
-       ( 8, 'Constellation' ),
-       ( 9, 'Star System'   ),
-       (10, 'Star'          ),
-       (11, 'Planet System' ),
-       (12, 'Planet'        ),
-       (13, 'Moon'          ),
-       (14, 'Debris'        ),
-       (15, 'Satellite'     ),
-       (16, 'Transport'     ),
-       (17, 'Surface'       );
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-CREATE TABLE RMCObject
-(
-   ObjectHead_Parent_wClass            SMALLINT          NOT NULL,
-   ObjectHead_Parent_twObjectIx        BIGINT            NOT NULL,
-   ObjectHead_Self_wClass              SMALLINT          NOT NULL,
-   ObjectHead_Self_twObjectIx          BIGINT            NOT NULL AUTO_INCREMENT,
-   ObjectHead_twEventIz                BIGINT            NOT NULL,
-   ObjectHead_wFlags                   SMALLINT          NOT NULL,
-
-   Name_wsRMCObjectId                  VARCHAR (48)      NOT NULL,
-   Type_bType                          TINYINT UNSIGNED  NOT NULL,
-   Type_bSubtype                       TINYINT UNSIGNED  NOT NULL,
-   Type_bFiction                       TINYINT UNSIGNED  NOT NULL,
-   Owner_twRPersonaIx                  BIGINT            NOT NULL,
-   Resource_qwResource                 BIGINT            NOT NULL,
-   Resource_sName                      VARCHAR (48)      NOT NULL DEFAULT '',
-   Resource_sReference                 VARCHAR (128)     NOT NULL DEFAULT '',
-   Transform_Position_dX               DOUBLE            NOT NULL,
-   Transform_Position_dY               DOUBLE            NOT NULL,
-   Transform_Position_dZ               DOUBLE            NOT NULL,
-   Transform_Rotation_dX               DOUBLE            NOT NULL,
-   Transform_Rotation_dY               DOUBLE            NOT NULL,
-   Transform_Rotation_dZ               DOUBLE            NOT NULL,
-   Transform_Rotation_dW               DOUBLE            NOT NULL,
-   Transform_Scale_dX                  DOUBLE            NOT NULL,
-   Transform_Scale_dY                  DOUBLE            NOT NULL,
-   Transform_Scale_dZ                  DOUBLE            NOT NULL,
-   Orbit_Spin_tmPeriod                 BIGINT            NOT NULL,
-   Orbit_Spin_tmStart                  BIGINT            NOT NULL,
-   Orbit_Spin_dA                       DOUBLE            NOT NULL,
-   Orbit_Spin_dB                       DOUBLE            NOT NULL,
-   Bound_dX                            DOUBLE            NOT NULL,
-   Bound_dY                            DOUBLE            NOT NULL,
-   Bound_dZ                            DOUBLE            NOT NULL,
-   Properties_fMass                    FLOAT             NOT NULL,                        
-   Properties_fGravity                 FLOAT             NOT NULL,                        
-   Properties_fColor                   FLOAT             NOT NULL,                        
-   Properties_fBrightness              FLOAT             NOT NULL,                        
-   Properties_fReflectivity            FLOAT             NOT NULL,                        
-
-   CONSTRAINT PK_RMCObject PRIMARY KEY
-   (
-      ObjectHead_Self_twObjectIx       ASC
-   ),
-
-   INDEX IX_RMCObject_ObjectHead_Parent_twObjectIx
-   (
-      ObjectHead_Parent_twObjectIx     ASC
-   ),
-
-   INDEX IX_RMCObject_Name_wsRMCObjectId
-   (
-      Name_wsRMCObjectId               ASC
-   )
-)
-ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
--- bOp     Meaning
--- 0       NULL
--- 1       RMCObject_Open
--- 2       RMCObject_Close
--- 3       RMCObject_Name
--- 4       RMCObject_Type
--- 5       RMCObject_Owner
--- 6       RMCObject_Resource
--- 7       RMCObject_Transform
--- 8       RMCObject_Orbit
--- 9       RMCObject_Spin
--- 10      RMCObject_Bound
--- 11      RMCObject_Properties
-
-CREATE TABLE RMCObjectLog
-(
-   dtCreated                           DATETIME          NOT NULL    DEFAULT CURRENT_TIMESTAMP,
-   twLogIx                             BIGINT            NOT NULL    AUTO_INCREMENT,
-
-   bOp                                 TINYINT UNSIGNED  NOT NULL,
-   dwIPAddress                         BINARY(4)         NOT NULL,
-   twRPersonaIx                        BIGINT            NOT NULL,
-   twRMCObjectIx                       BIGINT            NOT NULL,
-
-   CONSTRAINT PK_RMCObjectLog PRIMARY KEY
-   (
-      twLogIx                          ASC
-   )
-)
-ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                                  MVD_RP1_Map : RMEvent.sql                                                 ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-CREATE TABLE RMEvent
-(
-   twEventIx                           BIGINT            NOT NULL AUTO_INCREMENT,
-
-   sType                               VARCHAR (32)       NOT NULL,
-
-   Self_wClass                         TINYINT UNSIGNED  NOT NULL,
-   Self_twObjectIx                     BIGINT            NOT NULL,
-   Child_wClass                        TINYINT UNSIGNED  NOT NULL,
-   Child_twObjectIx                    BIGINT            NOT NULL,
-   wFlags                              SMALLINT          NOT NULL,
-   twEventIz                           BIGINT            NOT NULL,
-   
-   sJSON_Object                        TEXT              NOT NULL,
-   sJSON_Child                         TEXT              NOT NULL,
-   sJSON_Change                        TEXT              NOT NULL,
-
-   CONSTRAINT PK_RMEvent PRIMARY KEY
-   (
-      twEventIx                        ASC
-   )
-)
-ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                                 MVD_RP1_Map : RMPObject.sql                                                ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-CREATE TABLE RMPType
-(
-   bType                               TINYINT UNSIGNED  NOT NULL,
-   sType                               VARCHAR (31)      NOT NULL,
-
-   CONSTRAINT PK_RMPType PRIMARY KEY
-   (
-      bType ASC
-   )
-)
-ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-INSERT INTO RMPType
-       (bType, sType)
-VALUES ( 0, ''         ),
-       ( 1, 'Transport'),
-       ( 2, 'Other'    );
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-CREATE TABLE RMPObject
-(
-   ObjectHead_Parent_wClass            SMALLINT          NOT NULL,
-   ObjectHead_Parent_twObjectIx        BIGINT            NOT NULL,
-   ObjectHead_Self_wClass              SMALLINT          NOT NULL,
-   ObjectHead_Self_twObjectIx          BIGINT            NOT NULL AUTO_INCREMENT,
-   ObjectHead_twEventIz                BIGINT            NOT NULL,
-   ObjectHead_wFlags                   SMALLINT          NOT NULL,
-
-   Name_wsRMPObjectId                  VARCHAR (48)      NOT NULL DEFAULT '',
-   Type_bType                          TINYINT UNSIGNED  NOT NULL,
-   Type_bSubtype                       TINYINT UNSIGNED  NOT NULL,
-   Type_bFiction                       TINYINT UNSIGNED  NOT NULL,
-   Type_bMovable                       TINYINT UNSIGNED  NOT NULL,
-   Owner_twRPersonaIx                  BIGINT            NOT NULL,
-   Resource_qwResource                 BIGINT            NOT NULL,
-   Resource_sName                      VARCHAR (48)      NOT NULL DEFAULT '',
-   Resource_sReference                 VARCHAR (128)     NOT NULL DEFAULT '',
-   Transform_Position_dX               DOUBLE            NOT NULL,
-   Transform_Position_dY               DOUBLE            NOT NULL,
-   Transform_Position_dZ               DOUBLE            NOT NULL,
-   Transform_Rotation_dX               DOUBLE            NOT NULL,
-   Transform_Rotation_dY               DOUBLE            NOT NULL,
-   Transform_Rotation_dZ               DOUBLE            NOT NULL,
-   Transform_Rotation_dW               DOUBLE            NOT NULL,
-   Transform_Scale_dX                  DOUBLE            NOT NULL,
-   Transform_Scale_dY                  DOUBLE            NOT NULL,
-   Transform_Scale_dZ                  DOUBLE            NOT NULL,
-   Bound_dX                            DOUBLE            NOT NULL,
-   Bound_dY                            DOUBLE            NOT NULL,
-   Bound_dZ                            DOUBLE            NOT NULL,
-
-   CONSTRAINT PK_RMPObject PRIMARY KEY
-   (
-      ObjectHead_Self_twObjectIx       ASC
-   ),
-
-   INDEX IX_RMPObject_ObjectHead_Parent_twObjectIx
-   (
-      ObjectHead_Parent_twObjectIx     ASC
-   )
-)
-ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
--- bOp     Meaning
--- 0       NULL
--- 1       RMPObject_Open
--- 2       RMPObject_Close
--- 3    -- RMPObject_Name
--- 4       RMPObject_Type
--- 5       RMPObject_Owner
--- 6       RMPObject_Resource
--- 7       RMPObject_Transform
--- 8    -- RMPObject_Orbit
--- 9    -- RMPObject_Spin
--- 10      RMPObject_Bound
--- 11   -- RMPObject_Properties
-
-CREATE TABLE RMPObjectLog
-(
-   dtCreated                           DATETIME          NOT NULL    DEFAULT CURRENT_TIMESTAMP,
-   twLogIx                             BIGINT            NOT NULL    AUTO_INCREMENT,
-                                                         
-   bOp                                 TINYINT UNSIGNED  NOT NULL,
-   dwIPAddress                         BINARY(4)         NOT NULL,
-   twRPersonaIx                        BIGINT            NOT NULL,
-   twRMPObjectIx                       BIGINT            NOT NULL,
-
-   CONSTRAINT PK_RMPObjectLog PRIMARY KEY
-   (
-      twLogIx                          ASC
-   )
-)
-ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                                  MVD_RP1_Map : RMRoot.sql                                                  ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-CREATE TABLE RMRoot
-(
-   ObjectHead_Parent_wClass            SMALLINT          NOT NULL,
-   ObjectHead_Parent_twObjectIx        BIGINT            NOT NULL,
-   ObjectHead_Self_wClass              SMALLINT          NOT NULL,
-   ObjectHead_Self_twObjectIx          BIGINT            NOT NULL AUTO_INCREMENT,
-   ObjectHead_twEventIz                BIGINT            NOT NULL,
-   ObjectHead_wFlags                   SMALLINT          NOT NULL,
-
-   Name_wsRMRootId                     VARCHAR (48)      NOT NULL,
-   Owner_twRPersonaIx                  BIGINT            NOT NULL,
-
-   CONSTRAINT PK_RMRoot PRIMARY KEY
-   (
-      ObjectHead_Self_twObjectIx       ASC
-   )
-)
-ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-INSERT INTO RMRoot
-       ( ObjectHead_Parent_wClass, ObjectHead_Parent_twObjectIx, ObjectHead_Self_wClass, ObjectHead_twEventIz, ObjectHead_wFlags, Name_wsRMRootId, Owner_twRPersonaIx )
-VALUES ( 52,                       1,                            70,                     0,                    32,                'Root',          1                  );
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
--- bOp     Meaning
--- 0       NULL
--- 1    -- RMRoot_Open
--- 2    -- RMRoot_Close
--- 3       RMRoot_Name
--- 4    -- RMRoot_Type
--- 5       RMRoot_Owner
--- 6    -- RMRoot_Resource
--- 7    -- RMRoot_Transform
--- 8    -- RMRoot_Orbit
--- 9    -- RMRoot_Spin
--- 10   -- RMRoot_Bound
--- 11   -- RMRoot_Properties
--- 12   -- RMRoot_RMRoot_Open
--- 13   -- RMRoot_RMRoot_Close
--- 14      RMRoot_RMCObject_Open
--- 15      RMRoot_RMCObject_Close
--- 16      RMRoot_RMTObject_Open
--- 17      RMRoot_RMTObject_Close
--- 18      RMRoot_RMPObject_Open
--- 19      RMRoot_RMPObject_Close
-
-CREATE TABLE RMRootLog
-(
-   dtCreated                           DATETIME          NOT NULL    DEFAULT CURRENT_TIMESTAMP,
-   twLogIx                             BIGINT            NOT NULL    AUTO_INCREMENT,
-                                                         
-   bOp                                 TINYINT UNSIGNED  NOT NULL,
-   dwIPAddress                         BINARY(4)         NOT NULL,
-   twRPersonaIx                        BIGINT            NOT NULL,
-   twRMRootIx                          BIGINT            NOT NULL,
-
-   CONSTRAINT PK_RMRootLog PRIMARY KEY
-   (
-      twLogIx                          ASC
-   )
-)
-ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                                MVD_RP1_Map : RMTBuilding.sql                                               ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-CREATE TABLE RMTBuilding
-(
-   twRMTObjectIx                       BIGINT            NOT NULL,  -- sector
-   bnOSMWay                            BIGINT            NOT NULL,  -- building
-
-   PRIMARY KEY
-   (
-      twRMTObjectIx                    ASC,
-      bnOSMWay                         ASC
-   )
-)
-ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                                 MVD_RP1_Map : RMTMatrix.sql                                                ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-CREATE TABLE RMTSubsurface
-(
-   twRMTObjectIx                       BIGINT            NOT NULL,
-                                                                 --                        Nul      Car      Cyl      Geo
-   tnGeometry                          TINYINT UNSIGNED  NOT NULL, --                        0        1        2        3
-   dA                                  DOUBLE            NOT NULL,      -- original coordinates   -        x        angle    latitude
-   dB                                  DOUBLE            NOT NULL,      -- original coordinates   -        y        y        longitude
-   dC                                  DOUBLE            NOT NULL,      -- original coordinates   -        z        radius   radius
-
--- bnMatrix =  twRMTObjectIx is the         transform for this subsurface
--- bnMatrix = -twRMTObjectIx is the inverse transform for this subsurface
-
-   PRIMARY KEY
-   (
-      twRMTObjectIx                    ASC
-   )
-)
-ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE RMTMatrix
-(
-   bnMatrix                            BIGINT            NOT NULL,
-
-   d00                                 DOUBLE            NOT NULL DEFAULT 1,
-   d01                                 DOUBLE            NOT NULL DEFAULT 0,
-   d02                                 DOUBLE            NOT NULL DEFAULT 0,
-   d03                                 DOUBLE            NOT NULL DEFAULT 0,
-
-   d10                                 DOUBLE            NOT NULL DEFAULT 0,
-   d11                                 DOUBLE            NOT NULL DEFAULT 1,
-   d12                                 DOUBLE            NOT NULL DEFAULT 0,
-   d13                                 DOUBLE            NOT NULL DEFAULT 0,
-
-   d20                                 DOUBLE            NOT NULL DEFAULT 0,
-   d21                                 DOUBLE            NOT NULL DEFAULT 0,
-   d22                                 DOUBLE            NOT NULL DEFAULT 1,
-   d23                                 DOUBLE            NOT NULL DEFAULT 0,
-
-   d30                                 DOUBLE            NOT NULL DEFAULT 0,
-   d31                                 DOUBLE            NOT NULL DEFAULT 0,
-   d32                                 DOUBLE            NOT NULL DEFAULT 0,
-   d33                                 DOUBLE            NOT NULL DEFAULT 1,
-
-   PRIMARY KEY
-   (
-      bnMatrix                         ASC
-   )
-)
-ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                                 MVD_RP1_Map : RMTObject.sql                                                ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-CREATE TABLE RMTType
-(
-   bType                               TINYINT UNSIGNED  NOT NULL,
-   sType                               VARCHAR (31)      NOT NULL,
-
-   CONSTRAINT PK_RMTType PRIMARY KEY
-   (
-      bType ASC
-   )
-)
-ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-INSERT INTO RMTType
-       (bType, sType)
-VALUES ( 0, ''         ),
-       ( 1, 'Root'     ),
-       ( 2, 'Water'    ),
-       ( 3, 'Land'     ),
-       ( 4, 'Country'  ),
-       ( 5, 'Territory'),
-       ( 6, 'State'    ),
-       ( 7, 'County'   ),
-       ( 8, 'City'     ),
-       ( 9, 'Community'),
-       (10, 'Sector'   ),
-       (11, 'Parcel'   );
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-CREATE TABLE RMTObject
-(
-   ObjectHead_Parent_wClass            SMALLINT          NOT NULL,
-   ObjectHead_Parent_twObjectIx        BIGINT            NOT NULL,
-   ObjectHead_Self_wClass              SMALLINT          NOT NULL,
-   ObjectHead_Self_twObjectIx          BIGINT            NOT NULL AUTO_INCREMENT,
-   ObjectHead_twEventIz                BIGINT            NOT NULL,
-   ObjectHead_wFlags                   SMALLINT          NOT NULL,
-
-   Name_wsRMTObjectId                  VARCHAR (48)      NOT NULL,
-   Type_bType                          TINYINT UNSIGNED  NOT NULL,
-   Type_bSubtype                       TINYINT UNSIGNED  NOT NULL,
-   Type_bFiction                       TINYINT UNSIGNED  NOT NULL,
-   Owner_twRPersonaIx                  BIGINT            NOT NULL,
-   Resource_qwResource                 BIGINT            NOT NULL,
-   Resource_sName                      VARCHAR (48)      NOT NULL DEFAULT '',
-   Resource_sReference                 VARCHAR (128)     NOT NULL DEFAULT '',
-   Transform_Position_dX               DOUBLE            NOT NULL,
-   Transform_Position_dY               DOUBLE            NOT NULL,
-   Transform_Position_dZ               DOUBLE            NOT NULL,
-   Transform_Rotation_dX               DOUBLE            NOT NULL,
-   Transform_Rotation_dY               DOUBLE            NOT NULL,
-   Transform_Rotation_dZ               DOUBLE            NOT NULL,
-   Transform_Rotation_dW               DOUBLE            NOT NULL,
-   Transform_Scale_dX                  DOUBLE            NOT NULL,
-   Transform_Scale_dY                  DOUBLE            NOT NULL,
-   Transform_Scale_dZ                  DOUBLE            NOT NULL,
-   Bound_dX                            DOUBLE            NOT NULL,
-   Bound_dY                            DOUBLE            NOT NULL,
-   Bound_dZ                            DOUBLE            NOT NULL,
-   Properties_bLockToGround            TINYINT UNSIGNED  NOT NULL,
-   Properties_bYouth                   TINYINT UNSIGNED  NOT NULL,
-   Properties_bAdult                   TINYINT UNSIGNED  NOT NULL,
-   Properties_bAvatar                  TINYINT UNSIGNED  NOT NULL,
-
-   CONSTRAINT PK_RMTObject PRIMARY KEY
-   (
-      ObjectHead_Self_twObjectIx       ASC
-   ),
-
-   INDEX IX_RMTObject_ObjectHead_Parent_twObjectIx
-   (
-      ObjectHead_Parent_twObjectIx     ASC
-   ),
-
-   INDEX IX_RMTObject_Name_wsRMTObjectId
-   (
-      Name_wsRMTObjectId               ASC
-   )
-)
-ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
--- bOp     Meaning
--- 0       NULL
--- 1       RMTObject_Open
--- 2       RMTObject_Close
--- 3       RMTObject_Name
--- 4       RMTObject_Type
--- 5       RMTObject_Owner
--- 6       RMTObject_Resource
--- 7       RMTObject_Transform
--- 8    -- RMTObject_Orbit
--- 9    -- RMTObject_Spin
--- 10      RMTObject_Bound
--- 11      RMTObject_Properties
-
-CREATE TABLE RMTObjectLog
-(
-   dtCreated                           DATETIME          NOT NULL    DEFAULT CURRENT_TIMESTAMP,
-   twLogIx                             BIGINT            NOT NULL    AUTO_INCREMENT,
-                                                         
-   bOp                                 TINYINT UNSIGNED  NOT NULL,
-   dwIPAddress                         BINARY(4)         NOT NULL,
-   twRPersonaIx                        BIGINT            NOT NULL,
-   twRMTObjectIx                       BIGINT            NOT NULL,
-
-   CONSTRAINT PK_RMTObjectLog PRIMARY KEY
-   (
-      twLogIx                          ASC
-   )
-)
-ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                                 MVD_RP1_Map : ArcLength.sql                                                ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-DELIMITER $$
-
-CREATE FUNCTION ArcLength
-(
-   dRadius          DOUBLE,
-
-   dX0              DOUBLE,
-   dY0              DOUBLE,
-   dZ0              DOUBLE,
-
-   dX               DOUBLE,
-   dY               DOUBLE,
-   dZ               DOUBLE
-)
-RETURNS DOUBLE
-DETERMINISTIC
-BEGIN
-            -- arc length = 2 * radius * arcsin (distance / (2 * radius))
-
-            -- This function assumes dX0, dY0, and dZ0 have already been normalized to dRadius
-            -- Origins in the database sit below the surface and must also be normalized to dRadius
-
-       DECLARE dNormal DOUBLE DEFAULT dRadius / SQRT ((dX * dX) + (dY * dY) + (dZ * dZ));
-
-           SET dX = dX * dNormal;
-           SET dY = dY * dNormal;
-           SET dZ = dZ * dNormal;
-
-           SET dX = dX - dX0;
-           SET dY = dY - dY0;
-           SET dZ = dZ - dZ0;
-
-        RETURN (2.0 * dRadius) * ASIN (SQRT ((dX * dX) + (dY * dY) + (dZ * dZ)) / (2.0 * dRadius));
-END$$
-  
-DELIMITER ;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                              MVD_RP1_Map : DateTime2_Time.sql                                              ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
--- TIME reports time in 1/64 sec from UTC Jan 1, 1601
--- UNIX reports time in 1/1000 sec from UTC Jan 1, 1970
--- There are  134774 days between UTC Jan 1, 1601 and UTC Jan 1, 1970
--- There are 5529600 1/64 sec per day
-
--- 134774 * 5529600 = 745246310400
-
-DELIMITER $$
-
-CREATE FUNCTION DateTime2_Time
-(
-   tmStamp BIGINT
-)
-RETURNS DATETIME  -- DATETIME values must be in UTC
-DETERMINISTIC
-BEGIN
-
-      DECLARE dt2 DATETIME;
-      DECLARE s BIGINT;
-      DECLARE mcs BIGINT;
-
-          SET tmStamp = tmStamp - 745246310400;
-
-          SET s = tmStamp DIV 64;
-
-          SET mcs = tmStamp MOD 64;
-          SET mcs = mcs * 1000000;
-          SET mcs = mcs DIV 64;
-
-          SET dt2 = DATE_ADD('1970-01-01', INTERVAL s SECOND);
-          SET dt2 = DATE_ADD(dt2, INTERVAL mcs MICROSECOND);
-
-       RETURN dt2;
-END$$
-  
-DELIMITER ;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                              MVD_RP1_Map : Date_DateTime2.sql                                              ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
--- DATETIME2  reports time in 1/10000000 sec from UTC Jan 1, 0001
--- JavaScript reports time in 1/1000     sec from UTC Jan 1, 1970 (Unix Epoch Time)
--- There are  719162 days between Jan 1, 0001 and Jan 1, 1970
--- There are 86400000 1/1000 sec per day
-
-DELIMITER $$
-
-CREATE FUNCTION Date_DateTime2
-(
-   dtStamp DATETIME  -- DATETIME values must be in UTC and generally generated from UTC_TIMESTAMP()
-)
-RETURNS BIGINT
-DETERMINISTIC
-BEGIN
-      -- Convert MySQL DATETIME to JavaScript timestamp (milliseconds since Jan 1, 1970)
-      -- MySQL's UNIX_TIMESTAMP returns seconds since 1970, so multiply by 1000 for milliseconds
-      RETURN UNIX_TIMESTAMP(dtStamp) * 1000;
-END$$
-  
-DELIMITER ;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                               MVD_RP1_Map : Format_Bound.sql                                               ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-DELIMITER $$
-
-CREATE FUNCTION Format_Bound
-(
-   dX                      DOUBLE,
-   dY                      DOUBLE,
-   dZ                      DOUBLE
-)
-RETURNS VARCHAR (256)
-DETERMINISTIC
-BEGIN
-      RETURN CONCAT ('{ "Max": ', Format_Double3 (dX, dY, dZ), ' }');
-END$$
-  
-DELIMITER ;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                              MVD_RP1_Map : Format_Control.sql                                              ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-DELIMITER $$
-
-CREATE FUNCTION Format_Control
-(
-   Self_wClass             SMALLINT,
-   Self_twObjectIx         BIGINT,
-   Child_wClass            SMALLINT,
-   Child_twObjectIx        BIGINT,
-   wFlags                  SMALLINT,
-   twEventIz               BIGINT
-)
-RETURNS VARCHAR (256)
-DETERMINISTIC
-BEGIN
-      RETURN CONCAT
-             (
-                '{ "wClass_Object": ', CAST(Self_wClass AS CHAR), 
-                ', "twObjectIx": ',    CAST(Self_twObjectIx AS CHAR), 
-                ', "wClass_Child": ',  CAST(Child_wClass AS CHAR), 
-                ', "twChildIx": ',     CAST(Child_twObjectIx AS CHAR), 
-                ', "wFlags": ',        CAST(wFlags AS CHAR), 
-                ', "twEventIz": ',     CAST(twEventIz AS CHAR), 
-                ' }'
-             );
-END$$
-  
-DELIMITER ;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                               MVD_RP1_Map : Format_Double.sql                                              ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-DELIMITER $$
-
-CREATE FUNCTION Format_Double
-(
-   d   DOUBLE
-)
-RETURNS VARCHAR (32)
-DETERMINISTIC
-BEGIN
-
-      DECLARE dA      DOUBLE DEFAULT ABS (d);
-      DECLARE e       INT DEFAULT 0;
-      DECLARE sSign   VARCHAR (1) DEFAULT '';
-      DECLARE sExp    VARCHAR (8) DEFAULT '';
-      DECLARE sNum    VARCHAR (20) DEFAULT '';
-
-           IF (dA <> d)
-         THEN
-              SET sSign = '-';
-       END IF ;
-
-           IF dA <> 0 AND dA <> 1
-         THEN
-                    IF dA < 1.0
-                  THEN
-                          WHILE (dA < POW (10, -e) AND e < 310)
-                             DO
-                                     SET e = e + 1;
-                      END WHILE ;
-
-                            SET dA = dA * POW (10, e);
-                            SET sExp = CONCAT ('e-', e);
-                ELSEIF dA >= 10.0
-                  THEN
-                          WHILE (dA >= POW (10, e + 1) AND e < 310)
-                             DO
-                                     SET e = e + 1;
-                      END WHILE ;
-
-                            SET dA = dA * POW (10, -e);
-                            SET sExp = CONCAT ('e+', e);
-                END IF ;
-       END IF ;
-
-           IF (FLOOR (dA) = CEILING (dA))
-         THEN
-              SET sNum = CAST(dA AS CHAR);
-         ELSE 
-              SET sNum = FORMAT (dA, 16);
-       END IF ;
-
-       RETURN CONCAT (sSign, sNum, sExp);
-END$$
-  
-DELIMITER ;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                              MVD_RP1_Map : Format_Double3.sql                                              ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-DELIMITER $$
-
-CREATE FUNCTION Format_Double3
-(
-   dX   DOUBLE,
-   dY   DOUBLE,
-   dZ   DOUBLE
-)
-RETURNS VARCHAR (256)
-DETERMINISTIC
-BEGIN
-      RETURN CONCAT ('[', Format_Double(dX), ',', Format_Double(dY), ',', Format_Double(dZ), ']');
-END$$
-  
-DELIMITER ;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                              MVD_RP1_Map : Format_Double4.sql                                              ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-DELIMITER $$
-
-CREATE FUNCTION Format_Double4
-(
-   dX   DOUBLE,
-   dY   DOUBLE,
-   dZ   DOUBLE,
-   dW   DOUBLE
-)
-RETURNS VARCHAR (256)
-DETERMINISTIC
-BEGIN
-      RETURN CONCAT ('[', Format_Double(dX), ',', Format_Double(dY), ',', Format_Double(dZ), ',', Format_Double(dW), ']');
-END$$
-  
-DELIMITER ;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                               MVD_RP1_Map : Format_Float.sql                                               ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-DELIMITER $$
-
-CREATE FUNCTION Format_Float
-(
-   d   FLOAT
-)
-RETURNS VARCHAR (32)
-DETERMINISTIC
-BEGIN
-
-      DECLARE dA      FLOAT        DEFAULT ABS (d);
-      DECLARE e       INT          DEFAULT 0;
-      DECLARE sSign   VARCHAR (1)  DEFAULT '';
-      DECLARE sExp    VARCHAR (8)  DEFAULT '';
-      DECLARE sNum    VARCHAR (20) DEFAULT '';
-
-           IF (dA <> d)
-         THEN
-                   SET sSign = '-';
-       END IF ;
-
-           IF dA <> 0 AND dA <> 1
-         THEN
-                    IF dA < 1.0
-                  THEN
-                          WHILE (dA < POW (10, -e) AND e < 310)
-                             DO
-                                     SET e = e + 1;
-                      END WHILE ;
-
-                            SET dA = dA * POW (10, e);
-                            SET sExp = CONCAT ('e-', e);
-
-                ELSEIF dA >= 10.0
-                  THEN
-                          WHILE (dA >= POW (10, e + 1) AND e < 310)
-                             DO
-                                     SET e = e + 1;
-                      END WHILE ;
-
-                            SET dA = dA * POW (10, -e);
-                            SET sExp = CONCAT ('e+', e);
-                END IF ;
-       END IF ;
-
-           IF (FLOOR (dA) = CEILING (dA))
-         THEN
-                   SET sNum = CAST(dA AS CHAR);
-         ELSE 
-                   SET sNum = FORMAT (dA, 8);
-       END IF ;
-
-       RETURN CONCAT (sSign, sNum, sExp);
-END$$
-  
-DELIMITER ;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                               MVD_RP1_Map : Format_Name_C.sql                                              ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-DELIMITER $$
-
-CREATE FUNCTION Format_Name_C
-(
-   wsRMCObjectId            VARCHAR (48)
-)
-RETURNS VARCHAR (256)
-DETERMINISTIC
-BEGIN
-      RETURN CONCAT ('{ "wsRMCObjectId": "', wsRMCObjectId, '" }');
-END$$
-  
-DELIMITER ;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                               MVD_RP1_Map : Format_Name_P.sql                                              ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-DELIMITER $$
-
-CREATE FUNCTION Format_Name_P
-(
-   wsRMPObjectId            VARCHAR (48)
-)
-RETURNS VARCHAR (256)
-DETERMINISTIC
-BEGIN
-      RETURN CONCAT ('{ "wsRMPObjectId": "', wsRMPObjectId, '" }');
-END$$
-  
-DELIMITER ;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                               MVD_RP1_Map : Format_Name_R.sql                                              ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-DELIMITER $$
-
-CREATE FUNCTION Format_Name_R
-(
-   wsRMRootId            VARCHAR (48)
-)
-RETURNS VARCHAR (256)
-DETERMINISTIC
-BEGIN
-      RETURN CONCAT ('{ "wsRMRootId": "', wsRMRootId, '" }');
-END$$
-  
-DELIMITER ;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                               MVD_RP1_Map : Format_Name_T.sql                                              ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-DELIMITER $$
-
-CREATE FUNCTION Format_Name_T
-(
-   wsRMTObjectId            VARCHAR (48)
-)
-RETURNS VARCHAR (256)
-DETERMINISTIC
-BEGIN
-      RETURN CONCAT ('{ "wsRMTObjectId": "', wsRMTObjectId, '" }');
-END$$
-  
-DELIMITER ;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                             MVD_RP1_Map : Format_ObjectHead.sql                                            ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-DELIMITER $$
-
-CREATE FUNCTION Format_ObjectHead
-(
-   Parent_wClass           SMALLINT,
-   Parent_twObjectIx       BIGINT,
-   Self_wClass             SMALLINT,
-   Self_twObjectIx         BIGINT,
-   wFlags                  SMALLINT,
-   twEventIz               BIGINT
-)
-RETURNS VARCHAR (256)
-DETERMINISTIC
-BEGIN
-      RETURN CONCAT ('{ "wClass_Parent": ', CAST(Parent_wClass AS CHAR), ', "twParentIx": ', CAST(Parent_twObjectIx AS CHAR), ', "wClass_Object": ', CAST(Self_wClass AS CHAR), ', "twObjectIx": ', CAST(Self_twObjectIx AS CHAR), ', "wFlags": ', CAST(wFlags AS CHAR), ', "twEventIz": ', CAST(twEventIz AS CHAR), ' }');
-END$$
-  
-DELIMITER ;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                             MVD_RP1_Map : Format_Orbit_Spin.sql                                            ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-DELIMITER $$
-
-CREATE FUNCTION Format_Orbit_Spin
-(
-   tmPeriod                 BIGINT,
-   tmStart                  BIGINT,
-   dA                       DOUBLE,
-   dB                       DOUBLE
-)
-RETURNS VARCHAR (256)
-DETERMINISTIC
-BEGIN
-      RETURN CONCAT ('{ "tmPeriod": ', CAST(tmPeriod AS CHAR), ', "tmStart": ', CAST(tmStart AS CHAR), ', "dA": ', Format_Double(dA), ', "dB": ', Format_Double(dB), ' }');
-END$$
-  
-DELIMITER ;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                               MVD_RP1_Map : Format_Owner.sql                                               ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-DELIMITER $$
-
-CREATE FUNCTION Format_Owner
-(
-   twRPersonaIx                BIGINT
-)
-RETURNS VARCHAR (256)
-DETERMINISTIC
-BEGIN
-      RETURN CONCAT ('{ "twRPersonaIx": ', CAST(twRPersonaIx AS CHAR), ' }');
-END$$
-  
-DELIMITER ;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                            MVD_RP1_Map : Format_Properties_C.sql                                           ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-DELIMITER $$
-
-CREATE FUNCTION Format_Properties_C
-(
-   fMass                    FLOAT,
-   fGravity                 FLOAT,
-   fColor                   FLOAT,
-   fBrightness              FLOAT,
-   fReflectivity            FLOAT
-)
-RETURNS VARCHAR (256)
-DETERMINISTIC
-BEGIN
-      RETURN CONCAT ('{ "fMass": ', Format_Float(fMass), ', "fGravity": ', Format_Float(fGravity), ', "fColor": ', Format_Float(fColor), ', "fBrightness": ', Format_Float(fBrightness), ', "fReflectivity": ', Format_Float(fReflectivity), ' }');
-END$$
-  
-DELIMITER ;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                            MVD_RP1_Map : Format_Properties_T.sql                                           ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-DELIMITER $$
-
-CREATE FUNCTION Format_Properties_T
-(
-   bLockToGround            TINYINT UNSIGNED,
-   bYouth                   TINYINT UNSIGNED,
-   bAdult                   TINYINT UNSIGNED,
-   bAvatar                  TINYINT UNSIGNED
-)
-RETURNS VARCHAR (256)
-DETERMINISTIC
-BEGIN
-      RETURN CONCAT ('{ "bLockToGround": ', CAST(bLockToGround AS CHAR), ', "bYouth": ', CAST(bYouth AS CHAR), ', "bAdult": ', CAST(bAdult AS CHAR), ', "bAvatar": ', CAST(bAvatar AS CHAR), ' }');
-END$$
-  
-DELIMITER ;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                              MVD_RP1_Map : Format_Resource.sql                                             ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-DELIMITER $$
-
-CREATE FUNCTION Format_Resource
-(
-   qwResource               BIGINT,
-   sName                    VARCHAR (48),
-   sReference               VARCHAR (128)
-)
-RETURNS VARCHAR (256)
-DETERMINISTIC
-BEGIN
-       DECLARE n        INT;
-       DECLARE sName_   VARCHAR (128);
-
-           SET sName_ = sName;
-
-            IF SUBSTRING(sName, 1, 1) = '~'
-          THEN
-                    SET n = LOCATE (':', sName);
-                     IF n > 0 AND LENGTH (sName) = n + 10
-                   THEN
-                             SET sName_ = CONCAT ('https://', SUBSTRING(sName, 2, n - 2), '-cdn.rp1.com/sector/', SUBSTRING(sName, n + 1, 1), '/', SUBSTRING(sName, n + 2, 3), '/', SUBSTRING(sName, n + 5, 3), '/', SUBSTRING(sName, n + 1, 10), '.json');
-                 END IF ;
-        END IF ;
-
-        RETURN CONCAT
-               (
-                  '{ ', 
-                    '"qwResource": ',   CAST(qwResource AS CHAR), 
-                  ', "sName": "',       sName_, 
-                 '", "sReference": "',  sReference, 
-                 '" }'
-               );
-END$$
-  
-DELIMITER ;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                             MVD_RP1_Map : Format_Transform.sql                                             ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-DELIMITER $$
-
-CREATE FUNCTION Format_Transform
-(
-   Position_dX               DOUBLE,
-   Position_dY               DOUBLE,
-   Position_dZ               DOUBLE,
-   Rotation_dX               DOUBLE,
-   Rotation_dY               DOUBLE,
-   Rotation_dZ               DOUBLE,
-   Rotation_dW               DOUBLE,
-   Scale_dX                  DOUBLE,
-   Scale_dY                  DOUBLE,
-   Scale_dZ                  DOUBLE
-)
-RETURNS VARCHAR (512)
-DETERMINISTIC
-BEGIN
-      RETURN CONCAT ('{ "Position": ', Format_Double3 (Position_dX, Position_dY, Position_dZ), ', "Rotation": ', Format_Double4(Rotation_dX, Rotation_dY, Rotation_dZ, Rotation_dW), ', "Scale": ', Format_Double3 (Scale_dX, Scale_dY, Scale_dZ), ' }');
-END$$
-  
-DELIMITER ;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                               MVD_RP1_Map : Format_Type_C.sql                                              ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-DELIMITER $$
-
-CREATE FUNCTION Format_Type_C
-(
-   bType                    TINYINT UNSIGNED,
-   bSubtype                 TINYINT UNSIGNED,
-   bFiction                 TINYINT UNSIGNED
-)
-RETURNS VARCHAR (256)
-DETERMINISTIC
-BEGIN
-      RETURN CONCAT ('{ "bType": ', CAST(bType AS CHAR), ', "bSubtype": ', CAST(bSubtype AS CHAR), ', "bFiction": ', CAST(bFiction AS CHAR), ' }');
-END$$
-  
-DELIMITER ;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                               MVD_RP1_Map : Format_Type_P.sql                                              ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-DELIMITER $$
-
-CREATE FUNCTION Format_Type_P
-(
-   bType                    TINYINT UNSIGNED,
-   bSubtype                 TINYINT UNSIGNED,
-   bFiction                 TINYINT UNSIGNED,
-   bMovable                 TINYINT UNSIGNED
-)
-RETURNS VARCHAR (256)
-DETERMINISTIC
-BEGIN
-      RETURN CONCAT ('{ "bType": ', CAST(bType AS CHAR), ', "bSubtype": ', CAST(bSubtype AS CHAR), ', "bFiction": ', CAST(bFiction AS CHAR), ', "bMovable": ', CAST(bMovable AS CHAR), ' }');
-END$$
-  
-DELIMITER ;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                               MVD_RP1_Map : Format_Type_T.sql                                              ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-DELIMITER $$
-
-CREATE FUNCTION Format_Type_T
-(
-   bType                    TINYINT UNSIGNED,
-   bSubtype                 TINYINT UNSIGNED,
-   bFiction                 TINYINT UNSIGNED
-)
-RETURNS VARCHAR (256)
-DETERMINISTIC
-BEGIN
-      RETURN CONCAT ('{ "bType": ', CAST(bType AS CHAR), ', "bSubtype": ', CAST(bSubtype AS CHAR), ', "bFiction": ', CAST(bFiction AS CHAR), ' }');
-END$$
-  
-DELIMITER ;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                                MVD_RP1_Friends : IPstob.sql                                                ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                              Copyright 2023-2024 Metaversal Corporation. All rights reserved.                              ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-DELIMITER $$
-
-CREATE FUNCTION IPstob
-(
-   sIPAddress     VARCHAR (16)
-)
-RETURNS BINARY(4)
-DETERMINISTIC
-BEGIN
-       RETURN UNHEX (HEX (INET_ATON (sIPAddress)));
-END$$
-  
-DELIMITER ;
-
-DELIMITER $$
-
-CREATE FUNCTION IPbtos
-(
-   dwIPAddress    BINARY(4)
-)
-RETURNS VARCHAR (16)
-DETERMINISTIC
-BEGIN
-      RETURN CONCAT
-      (
-          CAST(CONV (HEX (SUBSTRING(dwIPAddress, 1, 1)), 16, 10) AS CHAR), '.',
-          CAST(CONV (HEX (SUBSTRING(dwIPAddress, 2, 1)), 16, 10) AS CHAR), '.',
-          CAST(CONV (HEX (SUBSTRING(dwIPAddress, 3, 1)), 16, 10) AS CHAR), '.',
-          CAST(CONV (HEX (SUBSTRING(dwIPAddress, 4, 1)), 16, 10) AS CHAR)
-      );
-END$$
-  
-DELIMITER ;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                                MVD_RP1_Map : Table_Error.sql                                               ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
--- Note: MySQL doesn't support table-valued functions like SQL Server
--- This would need to be implemented as a stored procedure that creates a temporary table
--- For now, this is converted to a comment indicating the table structure
-
--- CREATE TEMPORARY TABLE Error
--- (
---    nOrder                        INT             NOT NULL AUTO_INCREMENT PRIMARY KEY,
---    dwError                       INT             NOT NULL,
---    sError                        VARCHAR (255)   NOT NULL
--- );
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                                MVD_RP1_Map : Table_Event.sql                                               ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
--- Note: MySQL doesn't support table-valued functions like SQL Server
--- This would need to be implemented as a stored procedure that creates a temporary table
--- For now, this is converted to a comment indicating the table structure
-
--- CREATE TEMPORARY TABLE Event
--- (
---    nOrder                        INT             NOT NULL AUTO_INCREMENT PRIMARY KEY,
---    sType                         VARCHAR (32)    NOT NULL,
---    Self_wClass                   SMALLINT        NOT NULL,
---    Self_twObjectIx               BIGINT          NOT NULL,
---    Child_wClass                  SMALLINT        NOT NULL,
---    Child_twObjectIx              BIGINT          NOT NULL,
---    wFlags                        SMALLINT        NOT NULL,
---    twEventIz                     BIGINT          NOT NULL,
---    sJSON_Object                  TEXT            NOT NULL,
---    sJSON_Child                   TEXT            NOT NULL,
---    sJSON_Change                  TEXT            NOT NULL
--- );
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                               MVD_RP1_Map : Table_Results.sql                                              ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
--- Note: MySQL doesn't support table-valued functions like SQL Server
--- This would need to be implemented as a stored procedure that creates a temporary table
--- For now, this is converted to a comment indicating the table structure
-
--- CREATE TEMPORARY TABLE Results
--- (
---    nResultSet                    INT,
---    ObjectHead_Self_twObjectIx    BIGINT
--- );
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                               MVD_RP1_Map : Time_Current.sql                                               ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
--- This function is really Date_Current
-
-DELIMITER $$
-
-CREATE FUNCTION Time_Current
-(
-)
-RETURNS BIGINT
-DETERMINISTIC
-BEGIN
-       RETURN Date_DateTime2(UTC_TIMESTAMP());
-END$$
-  
-DELIMITER ;
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                                                                                                                            ~~
-~~                                              MVD_RP1_Map : Time_DateTime2.sql                                              ~~
-~~                                                                                                                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
--- DATETIME2  reports time in 1/10000000 sec from UTC Jan 1, 0001
--- S3         reports time in 1/64       sec from UTC Jan 1, 1601
--- There are  584388 days between UTC Jan 1, 0001 and UTC Jan 1, 1601
--- There are 5529600 1/64 sec per day
-
--- 584388 * 5529600 = 3231431884800
-
-DELIMITER $$
-
-CREATE FUNCTION Time_DateTime2
-(
-   dtStamp DATETIME  -- DATETIME values must be in UTC and generally generated from UTC_TIMESTAMP()
-)
-RETURNS BIGINT
-DETERMINISTIC
-BEGIN
-      -- Convert MySQL DATETIME to S3 timestamp format
-      -- MySQL uses seconds since 1970, S3 uses 1/64 sec since 1601
-      -- There are 134774 days between Jan 1, 1601 and Jan 1, 1970
-      -- 134774 * 86400 * 64 = 745246310400
-      RETURN (UNIX_TIMESTAMP(dtStamp) * 64) + 745246310400;
-END$$
-  
-DELIMITER ;
+DROP PROCEDURE IF EXISTS call_Error;
+DROP PROCEDURE IF EXISTS call_Event_Push;
+DROP PROCEDURE IF EXISTS etl_Events;
+DROP PROCEDURE IF EXISTS call_RMPObject_Event;
+DROP PROCEDURE IF EXISTS call_RMPObject_Event_Bound;
+DROP PROCEDURE IF EXISTS call_RMPObject_Event_Name;
+DROP PROCEDURE IF EXISTS call_RMPObject_Event_Owner;
+DROP PROCEDURE IF EXISTS call_RMPObject_Event_Resource;
+DROP PROCEDURE IF EXISTS call_RMPObject_Event_RMPObject_Close;
+DROP PROCEDURE IF EXISTS call_RMPObject_Event_RMPObject_Open;
+DROP PROCEDURE IF EXISTS call_RMPObject_Event_Transform;
+DROP PROCEDURE IF EXISTS call_RMPObject_Event_Type;
+DROP PROCEDURE IF EXISTS call_RMPObject_Log;
+DROP PROCEDURE IF EXISTS call_RMPObject_Select;
+DROP PROCEDURE IF EXISTS call_RMPObject_Validate;
+DROP PROCEDURE IF EXISTS call_RMPObject_Validate_Bound;
+DROP PROCEDURE IF EXISTS call_RMPObject_Validate_Name;
+DROP PROCEDURE IF EXISTS call_RMPObject_Validate_Owner;
+DROP PROCEDURE IF EXISTS call_RMPObject_Validate_Resource;
+DROP PROCEDURE IF EXISTS call_RMPObject_Validate_Transform;
+DROP PROCEDURE IF EXISTS call_RMPObject_Validate_Type;
+DROP PROCEDURE IF EXISTS get_RMPObject_Update;
+DROP PROCEDURE IF EXISTS set_RMPObject_Bound;
+DROP PROCEDURE IF EXISTS set_RMPObject_Name;
+DROP PROCEDURE IF EXISTS set_RMPObject_Owner;
+DROP PROCEDURE IF EXISTS set_RMPObject_Parent;
+DROP PROCEDURE IF EXISTS set_RMPObject_Resource;
+DROP PROCEDURE IF EXISTS set_RMPObject_RMPObject_Close;
+DROP PROCEDURE IF EXISTS set_RMPObject_RMPObject_Open;
+DROP PROCEDURE IF EXISTS set_RMPObject_Transform;
+DROP PROCEDURE IF EXISTS set_RMPObject_Type;
+DROP PROCEDURE IF EXISTS call_RMTMatrix_Car;
+DROP PROCEDURE IF EXISTS call_RMTMatrix_Cyl;
+DROP PROCEDURE IF EXISTS call_RMTMatrix_Geo;
+DROP PROCEDURE IF EXISTS call_RMTMatrix_Inverse;
+DROP PROCEDURE IF EXISTS call_RMTMatrix_Mult;
+DROP PROCEDURE IF EXISTS call_RMTMatrix_Nul;
+DROP PROCEDURE IF EXISTS call_RMTMatrix_Relative;
+DROP PROCEDURE IF EXISTS call_RMTMatrix_Rotate;
+DROP PROCEDURE IF EXISTS call_RMTMatrix_Scale;
+DROP PROCEDURE IF EXISTS call_RMTMatrix_Translate;
+DROP PROCEDURE IF EXISTS call_RMTObject_Event;
+DROP PROCEDURE IF EXISTS call_RMTObject_Event_Bound;
+DROP PROCEDURE IF EXISTS call_RMTObject_Event_Name;
+DROP PROCEDURE IF EXISTS call_RMTObject_Event_Owner;
+DROP PROCEDURE IF EXISTS call_RMTObject_Event_Properties;
+DROP PROCEDURE IF EXISTS call_RMTObject_Event_Resource;
+DROP PROCEDURE IF EXISTS call_RMTObject_Event_RMPObject_Close;
+DROP PROCEDURE IF EXISTS call_RMTObject_Event_RMPObject_Open;
+DROP PROCEDURE IF EXISTS call_RMTObject_Event_RMTObject_Close;
+DROP PROCEDURE IF EXISTS call_RMTObject_Event_RMTObject_Open;
+DROP PROCEDURE IF EXISTS call_RMTObject_Event_Transform;
+DROP PROCEDURE IF EXISTS call_RMTObject_Event_Type;
+DROP PROCEDURE IF EXISTS call_RMTObject_Log;
+DROP PROCEDURE IF EXISTS call_RMTObject_Select;
+DROP PROCEDURE IF EXISTS call_RMTObject_Validate;
+DROP PROCEDURE IF EXISTS call_RMTObject_Validate_Bound;
+DROP PROCEDURE IF EXISTS call_RMTObject_Validate_Coord_Car;
+DROP PROCEDURE IF EXISTS call_RMTObject_Validate_Coord_Cyl;
+DROP PROCEDURE IF EXISTS call_RMTObject_Validate_Coord_Geo;
+DROP PROCEDURE IF EXISTS call_RMTObject_Validate_Coord_Nul;
+DROP PROCEDURE IF EXISTS call_RMTObject_Validate_Name;
+DROP PROCEDURE IF EXISTS call_RMTObject_Validate_Owner;
+DROP PROCEDURE IF EXISTS call_RMTObject_Validate_Properties;
+DROP PROCEDURE IF EXISTS call_RMTObject_Validate_Resource;
+DROP PROCEDURE IF EXISTS call_RMTObject_Validate_Transform;
+DROP PROCEDURE IF EXISTS call_RMTObject_Validate_Type;
+DROP PROCEDURE IF EXISTS get_RMTObject_Update;
+DROP PROCEDURE IF EXISTS search_RMTObject;
+DROP PROCEDURE IF EXISTS set_RMTObject_Bound;
+DROP PROCEDURE IF EXISTS set_RMTObject_Name;
+DROP PROCEDURE IF EXISTS set_RMTObject_Owner;
+DROP PROCEDURE IF EXISTS set_RMTObject_Properties;
+DROP PROCEDURE IF EXISTS set_RMTObject_Resource;
+DROP PROCEDURE IF EXISTS set_RMTObject_RMPObject_Close;
+DROP PROCEDURE IF EXISTS set_RMTObject_RMPObject_Open;
+DROP PROCEDURE IF EXISTS set_RMTObject_RMTObject_Close;
+DROP PROCEDURE IF EXISTS set_RMTObject_RMTObject_Open;
+DROP PROCEDURE IF EXISTS set_RMTObject_Transform;
+DROP PROCEDURE IF EXISTS set_RMTObject_Type;
+DROP PROCEDURE IF EXISTS call_RMCObject_Event;
+DROP PROCEDURE IF EXISTS call_RMCObject_Event_Bound;
+DROP PROCEDURE IF EXISTS call_RMCObject_Event_Name;
+DROP PROCEDURE IF EXISTS call_RMCObject_Event_Orbit_Spin;
+DROP PROCEDURE IF EXISTS call_RMCObject_Event_Owner;
+DROP PROCEDURE IF EXISTS call_RMCObject_Event_Properties;
+DROP PROCEDURE IF EXISTS call_RMCObject_Event_Resource;
+DROP PROCEDURE IF EXISTS call_RMCObject_Event_RMCObject_Close;
+DROP PROCEDURE IF EXISTS call_RMCObject_Event_RMCObject_Open;
+DROP PROCEDURE IF EXISTS call_RMCObject_Event_RMTObject_Close;
+DROP PROCEDURE IF EXISTS call_RMCObject_Event_RMTObject_Open;
+DROP PROCEDURE IF EXISTS call_RMCObject_Event_Transform;
+DROP PROCEDURE IF EXISTS call_RMCObject_Event_Type;
+DROP PROCEDURE IF EXISTS call_RMCObject_Log;
+DROP PROCEDURE IF EXISTS call_RMCObject_Select;
+DROP PROCEDURE IF EXISTS call_RMCObject_Validate;
+DROP PROCEDURE IF EXISTS call_RMCObject_Validate_Bound;
+DROP PROCEDURE IF EXISTS call_RMCObject_Validate_Name;
+DROP PROCEDURE IF EXISTS call_RMCObject_Validate_Orbit_Spin;
+DROP PROCEDURE IF EXISTS call_RMCObject_Validate_Owner;
+DROP PROCEDURE IF EXISTS call_RMCObject_Validate_Properties;
+DROP PROCEDURE IF EXISTS call_RMCObject_Validate_Resource;
+DROP PROCEDURE IF EXISTS call_RMCObject_Validate_Transform;
+DROP PROCEDURE IF EXISTS call_RMCObject_Validate_Type;
+DROP PROCEDURE IF EXISTS get_RMCObject_Update;
+DROP PROCEDURE IF EXISTS search_RMCObject;
+DROP PROCEDURE IF EXISTS set_RMCObject_Bound;
+DROP PROCEDURE IF EXISTS set_RMCObject_Name;
+DROP PROCEDURE IF EXISTS set_RMCObject_Orbit_Spin;
+DROP PROCEDURE IF EXISTS set_RMCObject_Owner;
+DROP PROCEDURE IF EXISTS set_RMCObject_Properties;
+DROP PROCEDURE IF EXISTS set_RMCObject_Resource;
+DROP PROCEDURE IF EXISTS set_RMCObject_RMCObject_Close;
+DROP PROCEDURE IF EXISTS set_RMCObject_RMCObject_Open;
+DROP PROCEDURE IF EXISTS set_RMCObject_RMTObject_Close;
+DROP PROCEDURE IF EXISTS set_RMCObject_RMTObject_Open;
+DROP PROCEDURE IF EXISTS set_RMCObject_Transform;
+DROP PROCEDURE IF EXISTS set_RMCObject_Type;
+DROP PROCEDURE IF EXISTS call_RMRoot_Event;
+DROP PROCEDURE IF EXISTS call_RMRoot_Event_Name;
+DROP PROCEDURE IF EXISTS call_RMRoot_Event_Owner;
+DROP PROCEDURE IF EXISTS call_RMRoot_Event_RMCObject_Close;
+DROP PROCEDURE IF EXISTS call_RMRoot_Event_RMCObject_Open;
+DROP PROCEDURE IF EXISTS call_RMRoot_Event_RMPObject_Close;
+DROP PROCEDURE IF EXISTS call_RMRoot_Event_RMPObject_Open;
+DROP PROCEDURE IF EXISTS call_RMRoot_Event_RMTObject_Close;
+DROP PROCEDURE IF EXISTS call_RMRoot_Event_RMTObject_Open;
+DROP PROCEDURE IF EXISTS call_RMRoot_Log;
+DROP PROCEDURE IF EXISTS call_RMRoot_Select;
+DROP PROCEDURE IF EXISTS call_RMRoot_Validate;
+DROP PROCEDURE IF EXISTS call_RMRoot_Validate_Name;
+DROP PROCEDURE IF EXISTS call_RMRoot_Validate_Owner;
+DROP PROCEDURE IF EXISTS get_RMRoot_Update;
+DROP PROCEDURE IF EXISTS set_RMRoot_Name;
+DROP PROCEDURE IF EXISTS set_RMRoot_Owner;
+DROP PROCEDURE IF EXISTS set_RMRoot_RMCObject_Close;
+DROP PROCEDURE IF EXISTS set_RMRoot_RMCObject_Open;
+DROP PROCEDURE IF EXISTS set_RMRoot_RMPObject_Close;
+DROP PROCEDURE IF EXISTS set_RMRoot_RMPObject_Open;
+DROP PROCEDURE IF EXISTS set_RMRoot_RMTObject_Close;
+DROP PROCEDURE IF EXISTS set_RMRoot_RMTObject_Open;
+DROP PROCEDURE IF EXISTS init_DefaultScene;
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1662,7 +308,7 @@ DELIMITER ;
 ~~                                        MVD_RP1_Map : call_RMPObject_Event_Bound.sql                                        ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -1734,7 +380,7 @@ DELIMITER ;
 ~~                                         MVD_RP1_Map : call_RMPObject_Event_Name.sql                                        ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -1800,7 +446,7 @@ DELIMITER ;
 ~~                                        MVD_RP1_Map : call_RMPObject_Event_Owner.sql                                        ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -1866,7 +512,7 @@ DELIMITER ;
 ~~                                       MVD_RP1_Map : call_RMPObject_Event_Resource.sql                                      ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -1938,7 +584,7 @@ DELIMITER ;
 ~~                                   MVD_RP1_Map : call_RMPObject_Event_RMPObject_Close.sql                                   ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -2000,7 +646,7 @@ DELIMITER ;
 ~~                                    MVD_RP1_Map : call_RMPObject_Event_RMPObject_Open.sql                                   ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -2030,7 +676,7 @@ CREATE PROCEDURE call_RMPObject_Event_RMPObject_Open
    IN    Bound_dX                      DOUBLE,
    IN    Bound_dY                      DOUBLE,
    IN    Bound_dZ                      DOUBLE,
-   OUT   twRMPObjectIx_Open            BIGINT,
+   INOUT twRMPObjectIx_Open            BIGINT,
    OUT   bError                        INT,
    IN    bReparent                     TINYINT UNSIGNED
 )
@@ -2131,7 +777,7 @@ DELIMITER ;
 ~~                                      MVD_RP1_Map : call_RMPObject_Event_Transform.sql                                      ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -2224,7 +870,7 @@ DELIMITER ;
 ~~                                         MVD_RP1_Map : call_RMPObject_Event_Type.sql                                        ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -2330,7 +976,7 @@ DELIMITER ;
 ~~                                           MVD_RP1_Map : call_RMPObject_Select.sql                                          ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -2418,7 +1064,7 @@ DELIMITER ;
 ~~                                          MVD_RP1_Map : call_RMPObject_Validate.sql                                         ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -2432,7 +1078,13 @@ CREATE PROCEDURE call_RMPObject_Validate
    INOUT nError                        INT
 )
 BEGIN
+       DECLARE bAdmin INT DEFAULT 0;
        DECLARE nCount INT;
+
+            IF EXISTS (SELECT 1 FROM Admin AS a WHERE a.twRPersonaIx = twRPersonaIx)
+          THEN
+                    SET bAdmin = 1;
+        END IF ;
 
         SELECT o.ObjectHead_Parent_wClass, o.ObjectHead_Parent_twObjectIx
           INTO   ObjectHead_Parent_wClass,   ObjectHead_Parent_twObjectIx
@@ -2450,8 +1102,8 @@ BEGIN
         ELSEIF nCount <> 1
           THEN
                    CALL call_Error (3, 'twRMPObjectIx is unknown', nError);
-        ELSEIF twRPersonaIx <> twRPersonaIx
-          THEN                                                                -- TBD
+        ELSEIF bAdmin = 0
+          THEN
                    CALL call_Error (4, 'Invalid rights',           nError);
         END IF ;
 END$$
@@ -2464,7 +1116,7 @@ DELIMITER ;
 ~~                                       MVD_RP1_Map : call_RMPObject_Validate_Bound.sql                                      ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -2520,7 +1172,7 @@ DELIMITER ;
 ~~                                       MVD_RP1_Map : call_RMPObject_Validate_Name.sql                                       ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -2548,7 +1200,7 @@ DELIMITER ;
 ~~                                       MVD_RP1_Map : call_RMPObject_Validate_Owner.sql                                      ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -2579,7 +1231,7 @@ DELIMITER ;
 ~~                                     MVD_RP1_Map : call_RMPObject_Validate_Resource.sql                                     ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -2619,7 +1271,7 @@ DELIMITER ;
 ~~                                     MVD_RP1_Map : call_RMPObject_Validate_Transform.sql                                    ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -2700,7 +1352,7 @@ DELIMITER ;
 ~~                                       MVD_RP1_Map : call_RMPObject_Validate_Type.sql                                       ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -2726,7 +1378,13 @@ BEGIN
        DECLARE Self_bType      TINYINT UNSIGNED;
        DECLARE Self_bSubtype   TINYINT UNSIGNED;
 
-            IF ObjectHead_Parent_wClass = SBO_CLASS_RMPOBJECT
+            IF ObjectHead_Parent_wClass = SBO_CLASS_RMTOBJECT
+          THEN
+                 SELECT Type_bType
+                   INTO Parent_bType
+                   FROM RMTObject AS o
+                  WHERE o.ObjectHead_Self_twObjectIx = ObjectHead_Parent_twObjectIx;
+        ELSEIF ObjectHead_Parent_wClass = SBO_CLASS_RMPOBJECT
           THEN
                  SELECT o.Type_bType, o.Type_bSubtype
                    INTO Parent_bType, Parent_bSubtype
@@ -3251,6 +1909,7 @@ BEGIN
        DECLARE ObjectHead_Parent_wClass     SMALLINT;
        DECLARE ObjectHead_Parent_twObjectIx BIGINT;
        DECLARE nCount                       INT;
+       DECLARE nLock                        INT;
 
        DECLARE Name_wsRMPObjectId            VARCHAR (48);
        DECLARE Type_bType                    TINYINT UNSIGNED;
@@ -3301,6 +1960,8 @@ BEGIN
 
            SET twRPersonaIx  = IFNULL (twRPersonaIx,  0);
            SET twRMPObjectIx = IFNULL (twRMPObjectIx, 0);
+
+SET nLock = GET_LOCK ('parent', 10);
 
          START TRANSACTION;
 
@@ -3403,8 +2064,6 @@ BEGIN
 
                      IF bError = 0
                    THEN
-
-
                           UPDATE RMPObject
                              SET ObjectHead_Parent_wClass     = wClass,
                                  ObjectHead_Parent_twObjectIx = twObjectIx
@@ -3468,6 +2127,8 @@ BEGIN
           ELSE
                  COMMIT ;
         END IF ;
+
+SET nLock = RELEASE_LOCK ('parent');
 
           DROP TEMPORARY TABLE Error;
           DROP TEMPORARY TABLE Event;
@@ -4100,7 +2761,7 @@ DELIMITER ;
 ~~                                            MVD_RP1_Map : call_RMTMatrix_Car.sql                                            ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -4151,7 +2812,7 @@ DELIMITER ;
 ~~                                            MVD_RP1_Map : call_RMTMatrix_Cyl.sql                                            ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -4236,7 +2897,7 @@ DELIMITER ;
 ~~                                            MVD_RP1_Map : call_RMTMatrix_Geo.sql                                            ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -4324,7 +2985,7 @@ DELIMITER ;
 ~~                                          MVD_RP1_Map : call_RMTMatrix_Inverse.sql                                          ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -4413,7 +3074,7 @@ DELIMITER ;
 ~~                                            MVD_RP1_Map : call_RMTMatrix_Mult.sql                                           ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -4457,7 +3118,7 @@ DELIMITER ;
 ~~                                            MVD_RP1_Map : call_RMTMatrix_Nul.sql                                            ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -4517,7 +3178,7 @@ DELIMITER ;
 ~~                                          MVD_RP1_Map : call_RMTMatrix_Relative.sql                                         ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -4692,7 +3353,7 @@ DELIMITER ;
 ~~                                           MVD_RP1_Map : call_RMTMatrix_Rotate.sql                                          ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -4758,7 +3419,7 @@ DELIMITER ;
 ~~                                           MVD_RP1_Map : call_RMTMatrix_Scale.sql                                           ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -4823,7 +3484,7 @@ DELIMITER ;
 ~~                                         MVD_RP1_Map : call_RMTMatrix_Translate.sql                                         ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -4922,7 +3583,7 @@ DELIMITER ;
 ~~                                        MVD_RP1_Map : call_RMTObject_Event_Bound.sql                                        ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -4994,7 +3655,7 @@ DELIMITER ;
 ~~                                         MVD_RP1_Map : call_RMTObject_Event_Name.sql                                        ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -5060,7 +3721,7 @@ DELIMITER ;
 ~~                                        MVD_RP1_Map : call_RMTObject_Event_Owner.sql                                        ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -5126,7 +3787,7 @@ DELIMITER ;
 ~~                                      MVD_RP1_Map : call_RMTObject_Event_Properties.sql                                     ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -5201,7 +3862,7 @@ DELIMITER ;
 ~~                                       MVD_RP1_Map : call_RMTObject_Event_Resource.sql                                      ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -5273,7 +3934,7 @@ DELIMITER ;
 ~~                                   MVD_RP1_Map : call_RMTObject_Event_RMPObject_Close.sql                                   ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -5335,7 +3996,7 @@ DELIMITER ;
 ~~                                    MVD_RP1_Map : call_RMTObject_Event_RMPObject_Open.sql                                   ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -5365,7 +4026,7 @@ CREATE PROCEDURE call_RMTObject_Event_RMPObject_Open
    IN    Bound_dX                      DOUBLE,
    IN    Bound_dY                      DOUBLE,
    IN    Bound_dZ                      DOUBLE,
-   OUT   twRMPObjectIx_Open            BIGINT,
+   INOUT twRMPObjectIx_Open            BIGINT,
    OUT   bError                        INT,
    IN    bReparent                     TINYINT UNSIGNED
 )
@@ -5466,7 +4127,7 @@ DELIMITER ;
 ~~                                   MVD_RP1_Map : call_RMTObject_Event_RMTObject_Close.sql                                   ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -5538,7 +4199,7 @@ DELIMITER ;
 ~~                                    MVD_RP1_Map : call_RMTObject_Event_RMTObject_Open.sql                                   ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -5673,7 +4334,7 @@ DELIMITER ;
 ~~                                      MVD_RP1_Map : call_RMTObject_Event_Transform.sql                                      ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -5766,7 +4427,7 @@ DELIMITER ;
 ~~                                         MVD_RP1_Map : call_RMTObject_Event_Type.sql                                        ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -5869,7 +4530,7 @@ DELIMITER ;
 ~~                                           MVD_RP1_Map : call_RMTObject_Select.sql                                          ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -5964,7 +4625,7 @@ DELIMITER ;
 ~~                                          MVD_RP1_Map : call_RMTObject_Validate.sql                                         ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -5978,7 +4639,13 @@ CREATE PROCEDURE call_RMTObject_Validate
    INOUT nError                        INT
 )
 BEGIN
+       DECLARE bAdmin INT DEFAULT 0;
        DECLARE nCount INT;
+
+            IF EXISTS (SELECT 1 FROM Admin AS a WHERE a.twRPersonaIx = twRPersonaIx)
+          THEN
+                    SET bAdmin = 1;
+        END IF ;
 
         SELECT o.ObjectHead_Parent_wClass, o.ObjectHead_Parent_twObjectIx
           INTO   ObjectHead_Parent_wClass,   ObjectHead_Parent_twObjectIx
@@ -5996,8 +4663,8 @@ BEGIN
         ELSEIF nCount <> 1
           THEN
                    CALL call_Error (3, 'twRMTObjectIx is unknown', nError);
-        ELSEIF twRPersonaIx <> twRPersonaIx
-          THEN                                                                -- TBD
+        ELSEIF bAdmin = 0
+          THEN
                    CALL call_Error (4, 'Invalid rights',           nError);
         END IF ;
 END$$
@@ -6010,7 +4677,7 @@ DELIMITER ;
 ~~                                       MVD_RP1_Map : call_RMTObject_Validate_Bound.sql                                      ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -6066,7 +4733,7 @@ DELIMITER ;
 ~~                                     MVD_RP1_Map : call_RMTObject_Validate_Coord_Car.sql                                    ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -6112,7 +4779,7 @@ DELIMITER ;
 ~~                                     MVD_RP1_Map : call_RMTObject_Validate_Coord_Cyl.sql                                    ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -6164,7 +4831,7 @@ DELIMITER ;
 ~~                                     MVD_RP1_Map : call_RMTObject_Validate_Coord_Geo.sql                                    ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -6219,7 +4886,7 @@ DELIMITER ;
 ~~                                     MVD_RP1_Map : call_RMTObject_Validate_Coord_Nul.sql                                    ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -6300,7 +4967,7 @@ DELIMITER ;
 ~~                                       MVD_RP1_Map : call_RMTObject_Validate_Name.sql                                       ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -6328,7 +4995,7 @@ DELIMITER ;
 ~~                                       MVD_RP1_Map : call_RMTObject_Validate_Owner.sql                                      ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -6359,7 +5026,7 @@ DELIMITER ;
 ~~                                    MVD_RP1_Map : call_RMTObject_Validate_Properties.sql                                    ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -6417,7 +5084,7 @@ DELIMITER ;
 ~~                                     MVD_RP1_Map : call_RMTObject_Validate_Resource.sql                                     ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -6457,7 +5124,7 @@ DELIMITER ;
 ~~                                     MVD_RP1_Map : call_RMTObject_Validate_Transform.sql                                    ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -6538,7 +5205,7 @@ DELIMITER ;
 ~~                                       MVD_RP1_Map : call_RMTObject_Validate_Type.sql                                       ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -6563,7 +5230,13 @@ BEGIN
        DECLARE Self_bType      TINYINT UNSIGNED;
        DECLARE Self_bSubtype   TINYINT UNSIGNED;
 
-            IF ObjectHead_Parent_wClass = SBO_CLASS_RMTOBJECT
+            IF ObjectHead_Parent_wClass = SBO_CLASS_RMCOBJECT
+          THEN
+                 SELECT Type_bType
+                   INTO Parent_bType
+                   FROM RMCObject AS o
+                  WHERE o.ObjectHead_Self_twObjectIx = ObjectHead_Parent_twObjectIx;
+        ELSEIF ObjectHead_Parent_wClass = SBO_CLASS_RMTOBJECT
           THEN
                  SELECT o.Type_bType, o.Type_bSubtype
                    INTO Parent_bType, Parent_bSubtype
@@ -6738,7 +5411,7 @@ DELIMITER ;
 ~~                                             MVD_RP1_Map : search_RMTObject.sql                                             ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -8378,7 +7051,7 @@ DELIMITER ;
 ~~                                        MVD_RP1_Map : call_RMCObject_Event_Bound.sql                                        ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -8450,7 +7123,7 @@ DELIMITER ;
 ~~                                         MVD_RP1_Map : call_RMCObject_Event_Name.sql                                        ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -8516,7 +7189,7 @@ DELIMITER ;
 ~~                                      MVD_RP1_Map : call_RMCObject_Event_Orbit_Spin.sql                                     ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -8591,7 +7264,7 @@ DELIMITER ;
 ~~                                        MVD_RP1_Map : call_RMCObject_Event_Owner.sql                                        ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -8657,7 +7330,7 @@ DELIMITER ;
 ~~                                      MVD_RP1_Map : call_RMCObject_Event_Properties.sql                                     ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -8735,7 +7408,7 @@ DELIMITER ;
 ~~                                       MVD_RP1_Map : call_RMCObject_Event_Resource.sql                                      ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -8807,7 +7480,7 @@ DELIMITER ;
 ~~                                   MVD_RP1_Map : call_RMCObject_Event_RMCObject_Close.sql                                   ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -8864,7 +7537,7 @@ DELIMITER ;
 ~~                                    MVD_RP1_Map : call_RMCObject_Event_RMCObject_Open.sql                                   ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -9012,7 +7685,7 @@ DELIMITER ;
 ~~                                   MVD_RP1_Map : call_RMCObject_Event_RMTObject_Close.sql                                   ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -9084,7 +7757,7 @@ DELIMITER ;
 ~~                                    MVD_RP1_Map : call_RMCObject_Event_RMTObject_Open.sql                                   ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -9220,7 +7893,7 @@ DELIMITER ;
 ~~                                      MVD_RP1_Map : call_RMCObject_Event_Transform.sql                                      ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -9313,7 +7986,7 @@ DELIMITER ;
 ~~                                         MVD_RP1_Map : call_RMCObject_Event_Type.sql                                        ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -9416,7 +8089,7 @@ DELIMITER ;
 ~~                                           MVD_RP1_Map : call_RMCObject_Select.sql                                          ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -9517,7 +8190,7 @@ DELIMITER ;
 ~~                                          MVD_RP1_Map : call_RMCObject_Validate.sql                                         ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -9531,7 +8204,13 @@ CREATE PROCEDURE call_RMCObject_Validate
    INOUT nError                        INT
 )
 BEGIN
+       DECLARE bAdmin INT DEFAULT 0;
        DECLARE nCount INT;
+
+            IF EXISTS (SELECT 1 FROM Admin AS a WHERE a.twRPersonaIx = twRPersonaIx)
+          THEN
+                    SET bAdmin = 1;
+        END IF ;
 
         SELECT o.ObjectHead_Parent_wClass, o.ObjectHead_Parent_twObjectIx
           INTO   ObjectHead_Parent_wClass,   ObjectHead_Parent_twObjectIx
@@ -9549,8 +8228,8 @@ BEGIN
         ELSEIF nCount <> 1
           THEN
                    CALL call_Error (3, 'twRMCObjectIx is unknown', nError);
-        ELSEIF twRPersonaIx <> twRPersonaIx
-          THEN                                                                -- TBD
+        ELSEIF bAdmin = 0
+          THEN
                    CALL call_Error (4, 'Invalid rights',           nError);
         END IF ;
 END$$
@@ -9563,7 +8242,7 @@ DELIMITER ;
 ~~                                       MVD_RP1_Map : call_RMCObject_Validate_Bound.sql                                      ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -9619,7 +8298,7 @@ DELIMITER ;
 ~~                                       MVD_RP1_Map : call_RMCObject_Validate_Name.sql                                       ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -9647,7 +8326,7 @@ DELIMITER ;
 ~~                                    MVD_RP1_Map : call_RMCObject_Validate_Orbit_Spin.sql                                    ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -9712,7 +8391,7 @@ DELIMITER ;
 ~~                                       MVD_RP1_Map : call_RMCObject_Validate_Owner.sql                                      ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -9743,7 +8422,7 @@ DELIMITER ;
 ~~                                    MVD_RP1_Map : call_RMCObject_Validate_Properties.sql                                    ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -9810,7 +8489,7 @@ DELIMITER ;
 ~~                                     MVD_RP1_Map : call_RMCObject_Validate_Resource.sql                                     ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -9852,7 +8531,7 @@ DELIMITER ;
 ~~                                     MVD_RP1_Map : call_RMCObject_Validate_Transform.sql                                    ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -9933,7 +8612,7 @@ DELIMITER ;
 ~~                                       MVD_RP1_Map : call_RMCObject_Validate_Type.sql                                       ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -10128,7 +8807,7 @@ DELIMITER ;
 ~~                                             MVD_RP1_Map : search_RMCObject.sql                                             ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -11828,7 +10507,7 @@ DELIMITER ;
 ~~                                          MVD_RP1_Map : call_RMRoot_Event_Name.sql                                          ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -11894,7 +10573,7 @@ DELIMITER ;
 ~~                                          MVD_RP1_Map : call_RMRoot_Event_Owner.sql                                         ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -11960,7 +10639,7 @@ DELIMITER ;
 ~~                                     MVD_RP1_Map : call_RMRoot_Event_RMCObject_Close.sql                                    ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -12018,7 +10697,7 @@ DELIMITER ;
 ~~                                     MVD_RP1_Map : call_RMRoot_Event_RMCObject_Open.sql                                     ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -12167,7 +10846,7 @@ DELIMITER ;
 ~~                                     MVD_RP1_Map : call_RMRoot_Event_RMPObject_Close.sql                                    ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -12229,7 +10908,7 @@ DELIMITER ;
 ~~                                     MVD_RP1_Map : call_RMRoot_Event_RMPObject_Open.sql                                     ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -12259,7 +10938,7 @@ CREATE PROCEDURE call_RMRoot_Event_RMPObject_Open
    IN    Bound_dX                      DOUBLE,
    IN    Bound_dY                      DOUBLE,
    IN    Bound_dZ                      DOUBLE,
-   OUT   twRMPObjectIx_Open            BIGINT,
+   INOUT twRMPObjectIx_Open            BIGINT,
    OUT   bError                        INT,
    IN    bReparent                     TINYINT UNSIGNED
 )
@@ -12360,7 +11039,7 @@ DELIMITER ;
 ~~                                     MVD_RP1_Map : call_RMRoot_Event_RMTObject_Close.sql                                    ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -12418,7 +11097,7 @@ DELIMITER ;
 ~~                                     MVD_RP1_Map : call_RMRoot_Event_RMTObject_Open.sql                                     ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -12585,7 +11264,7 @@ DELIMITER ;
 ~~                                            MVD_RP1_Map : call_RMRoot_Select.sql                                            ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -12636,7 +11315,7 @@ DELIMITER ;
 ~~                                           MVD_RP1_Map : call_RMRoot_Validate.sql                                           ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -12650,7 +11329,13 @@ CREATE PROCEDURE call_RMRoot_Validate
    INOUT nError                        INT
 )
 BEGIN
+       DECLARE bAdmin INT DEFAULT 0;
        DECLARE nCount INT;
+
+            IF EXISTS (SELECT 1 FROM Admin AS a WHERE a.twRPersonaIx = twRPersonaIx)
+          THEN
+                    SET bAdmin = 1;
+        END IF ;
 
         SELECT o.ObjectHead_Parent_wClass, o.ObjectHead_Parent_twObjectIx
           INTO   ObjectHead_Parent_wClass,   ObjectHead_Parent_twObjectIx
@@ -12668,8 +11353,8 @@ BEGIN
         ELSEIF nCount <> 1
           THEN
                    CALL call_Error (3, 'twRMRootIx is unknown',   nError);
-        ELSEIF twRPersonaIx <> twRPersonaIx
-          THEN                                                             -- TBD
+        ELSEIF bAdmin = 0
+          THEN
                    CALL call_Error (4, 'Invalid rights',          nError);
         END IF ;
 END$$
@@ -12682,7 +11367,7 @@ DELIMITER ;
 ~~                                         MVD_RP1_Map : call_RMRoot_Validate_Name.sql                                        ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
@@ -12710,7 +11395,7 @@ DELIMITER ;
 ~~                                        MVD_RP1_Map : call_RMRoot_Validate_Owner.sql                                        ~~
 ~~                                                                                                                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~                            Copyright (c) 2023-2023 Metaversal Corporation. All rights reserved.                            ~~
+~~                            Copyright (c) 2023-2025 Metaversal Corporation. All rights reserved.                            ~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 DELIMITER $$
